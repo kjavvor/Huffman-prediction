@@ -1,0 +1,16 @@
+Podstawową klasą jest Processor. Ma ona dwie metody statyczne: „code” oraz „decode”.
+
+Pierwsza z nich pobiera obraz oraz uchwyt pliku wyjściowego do którego będzie pisać
+skompresowane dane. Zapisuje do pliku wyjściowego wymiary obrazu, po czym tworzy
+obiekt iteratora („counter”), dzięki któremu będzie się poruszać po obrazie. Potem tworzy listę
+(„coding”) do której będzie dopisywać kolejne dane różnicowe. W pętli, aż iterator wyjdzie
+poza zakres, jest brana z obrazu kolejna dana różnicowa, przy pomocy operatora czytania przez indeks,
+gdzie indeksem jest iterator. Później jest tworzony obiekt statystyk, na podstawie dwóch obiektów
+histogramów, jednego z danych oryginalnych, a drugiego z danych różnicowych. W statystykach tworzone są obiekty dystrybucji
+i na ich podstawie są potem liczone entropie oraz z dystrybucji danych różnicowych tworzony jest obiekt kodera, drzewo
+Huffmana oraz zwracana jest średnia długość słowa, do statystyk. Zapisywane jest do pliku wyjściowego drzewo Huffmana oraz
+tablica ze spakowanej zakodowanej przez obiekt kodera listy „coding”. Metoda ta zwraca obiekt statystyk oraz obiekt rozmiarów,
+na który składają się rozmiar obrazu, rozmiar drzewa oraz rozmiar spakowanej, zakodowanej listy „coding".
+
+Druga z nich pobiera uchwyt pliku wejściowego z zapisanymi danymi, klasę którą ma mieć obiekt obrazu oraz obiekt kontekstu,
+który decyduje jaką wartość mają pixele za granicami obrazu.

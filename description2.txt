@@ -1,0 +1,83 @@
+Podstawową klasą jest „Processor”, który ma dwie metody statyczne: „code” oraz „decode”
+
+Pierwsza z nich pobiera obraz do skompresowania oraz uchwyt do pliku wyjściowego do którego będą wysyłane skompresowane dane.
+Do pliku wyjściowego są zapisywane najpierw wymiaty obrazu. Potem w pętli zapisywane są do listy kolejne dane różnicowe.
+Następnie przeliczane są histogramy danych oryginalnych (dla wartości 0 - 255) oraz dla danych różnicowych (dla wartości -255 - 255).
+Każdy histogram to struktura, która różnym wartościom przypisuje liczbę ich wystąpień.
+Na podstawie tych histogramów liczone są dystrybucje. Każda dystrybucja to struktura, która różnym wartościom przyporządkowuje
+ich prawdopodobieństwo. Potem na podstawie danych różnicowych generowane jest drzewo Huffmana, dostajemy obiekt kodera, korzeń drzewa
+oraz średnią długość słowa kodowego, która będzie potrzebna w statystykach. Zapisujemy drzewo w pliku wyjściowym (ono jest piklowane) 
+oraz listę będącą spakowaną listą bitów (0 i 1) ze skompresowanej listy danych różnicowych. Dostajemy rozmiar drzewa oraz rozmiar tej
+spakowanej listy. Zwracane są rozmiary (do statystyk) oraz obiekt statystyk.
+
+Druga z nich pobiera uchwyt do pliku wejściowego ze skompresowanymi danymi, klasę, której ma być obraz (zależnie od tego jakiego sąsiedztwa
+używamy do danych różnicowych) oraz obiekt kontekstu, który określa jaka jest domyślna wartość pixela w przypadku pixeli spoza granic obrazu.
+Z pliku wejściowego pobiera wymiary obrazu i na ich podstawie tworzy pusty obraz. Na podstawie odczytanego drzewa Huffmana tworzy obiekt dekodera.
+Wczytuje tablicę skompresowanych i spakowanych danych i rozpakowuje je do tablicy bitów (0 i 1). Potem w pętli dekoduje te dane i zapisuje je w obrazie
+traktując je jako dane różnicowe. Zwracany jest obiekt obrazu.
+
+Klasa „HuffmanGenerator” ma jedną metodę, która pobiera dystrybucję i zwraca na jej podstawie koder, drzewo Huffmana oraz średnią długość słowa
+kodowego w uzyskanym kodzie Huffmana. Jeśli dystrybucja jest pusta, rzuca wyjątkiem. W pętli, dla każdego symbolu i jego wagi, jeśli waga nie jest
+zerowa (a jest zerowa, jeśli dany symbol nie pojawił się w danych różnicowych), tworzy terminal i zapisuje go w słowniku, który przypisuje
+terminale symbolom. Terminal jest tworzony na podstawie symbolu i wagi. Zapisuje go także na liście węzłów. Potem w następnej pętli,
+dopóki są co najmniej dwa węzły w liście węzłów, sortuje listę węzłów i na podstawie tych dwóch o najmniejszych wagach (które są na początku listy)
+tworzy jeden, który wstawia na koniec listy, a te dwa usuwa z początku listy. W ten sposób budowane jest drzewo Huffmana. Węzeł, który pozostanie na liście,
+kiedy będzie miała długość 1, będzie korzeniem drzewa.
+
+Węzły, które są obiektami klasy „GeneralNode” dzielą się na terminalne i nieterminalne. Wszystkie mają pole „weight” czyli wagę oraz mogą mieć rodzica
+(w już zbudowanym drzewie Huffmana tylko korzeń nie ma rodzica). Te, które mają rodzica, mają także etykietę, która jest zerem lub jedynką. 
+Mają metodę „route”, która jest rekursywna i zwraca sekwencję kodową danego węzła, dzięki przemierzeniu drogi do korzenia. Wszystkie węzły posiadają
+metodę „trace” jednak jest ona inna dla terminalnych i nieterminalnych. Ta metoda również jest rekursywna, pobiera listę bitów, z której każdy węzeł
+nieterminalny pobiera jeden bit i pozycję na tej liście, którą każdy węzeł nieterminalny inkrementuje, a węzeł terminalny zwraca swój symbol oraz
+uzyskaną pozycję. Tylko węzły terminalne mają przypisane symbole i metoda „trace” przeprowadza przez drzewo Huffmana od korzenia do tego symbolu.
+
+Występuje klasa „Image” i ma ona cztery podklasy: „LeftImage”, „UpperImage”, „LeftUpperImage” oraz „MedianeImage”. Klasa „Image” inicjowana jest
+danymi obrazu (w formie dwuwymiarowej tablicy numpy'owej) oraz kontekstem. Obiekt obrazu można zapisać do pliku, 
+używając OpenCV. Można odwoływać się do niego jak do tablicy, używając jako indeksu specjalnego obiektu iteratora 
+i to powoduje odczyt lub zapis danych różnicowych. Ma także metody „setCurrent”
+oraz „getCurrent”, które po prostu zapisują i odczytują dane obrazu. Jest także metoda „getPrevious”, która zwraca poprzedni piksel - w zależności
+od typu obrazu lewego sąsiada, górnego sąsiada lub lewego-górnego sąsiada. Jest ona przedefiniowana w „MedianeImage”, gdzie zwraca medianę.
+Ma także metodę „frame”, która zwraca wymiary obrazu, metodę „size”, która zwraca całkowity rozmiar danych obrazu oraz metodę „flatten”, która
+zwraca jednowymiarową tablicę danych obrazu.
+
+Klasy „LeftImage”, „UpperImage” i „LeftUpperImage” mają metodę „lower”, która zwraca współrzędne odpowiedniego sąsiada, które są użyte w metodzie
+„getPrevious”. Jeśli któraś z tych współrzędnych jest ujemna, brana jest wartość domyślna określona przez kontekst.
+
+Poza tym występuje klasa „ImageLoader”, która posiada metody statyczne: „empty” generującą obraz z danymi zerowymi (do uzupełnienia) oraz „load”,
+która wczytuje obraz za pomocą OpenCV. Obie te metody pobierają klasę obrazu i kontekst.
+
+Klasa „Histogram” reprezentuje przyporządkowanie wartościom liczby ich wystąpień. W metodzie inicjującej tworzony jest słownik „data” i zapisywana
+długość danych wejściowych. Dla każdej wartości w podanym zakresie (który może być generatorem) liczba wystąpień jest inicjowana zerem. Potem
+dla każdego symbolu odpowiednia liczba wystąpień jest inkrementowana. Klasa „Histogram” posiada również metody służące do rysowania histogramów na podstawie
+zawieranych danych, trzema sposobami - przy użyciu biblioteki „Matplotlib” - używając „bara”, „plota” lub „stepa”. Ma także metodę podpisującą osie.
+
+Poza tym jest klasa „Distribution” reprezentująca przyporządkowanie wartościom ich prawdopodobieństwa. Inicjowana jest obiektem klasy „Histogram”. Ma ona
+w polu „data” wartości odpowiadające tym w „Histogram”, ale pomniejszone tyle razy, ile wynosi długość danych, na podstawie których był zbudowany obiekt
+histogramu. Posiada metodę zwracającą iterator, po kluczach i wartościach pola „data”. Także posiada metodę zwracającą entropię oraz metodę zwracającą
+średnią długość słowa kodowego na podstawie podanego słownika terminali. Jest też w niej metoda sprawdzającą czy nie jest pusta (to znaczy czy długość
+danych, na podstawie których był budowany histogram, nie jest zerowa. To przydaje się przy budowaniu drzewa Huffmana, w przypadku zerowej dystrybucji
+zgłaszany jest wyjątek.
+
+Jest też klasa „Statistics”, która jest opakowaniem na histogramy, dystrybucje oraz średnią długość słowa kodowego. Posiada metodę „drawHistograms”,
+która rysuje do pliku histogramy danych oryginalnych i różnicowych trzema metodami: „barem”, „plotem” i „stepem”.
+
+Klasa „Bits” ma jedną metodę statyczną, która konwertuje obiekt „BitArray” na zwykłą listę liczb całkowitych. Klasa „Packer” ma dwie metody statyczne:
+„pack” i „unpack”, które odpowiednio pakują i rozpakowują bity. Klasa DefaultContext ma dwie metody statyczne: „null”, które zwraca domyślną wartość pixela
+ - 127 oraz „mediane”, która liczy medianę.
+ 
+Klasa „Frame” reprezentuje wymiary obrazu, a „FrameCounter” reprezentuje dwuwymiarowy indeks, za pomocą którego można się poruszać po obrazie.
+Ta pierwsza ma tylko metodę inicjalizującą, ta druga ma poza tym metodę „advance”, która przesuwa do następnego pixela oraz metodę konwersji,
+która sprawdza, czy nie wyszliśmy poza zakres.
+
+Klasa „FileInput” reprezentuje uchwyt do pliku wejściowego, który zawiera dane skompresowane. Zawiera metodę „readNumber”, która wczytuje zapisaną binarnie
+4-bitową liczbę całkowitą, „readArray”, która na początku wczytuje liczbę, a potem wczytuje tablicę bajtów o długości tej liczby. Ma także metodę „readObject”, która wczytuje tablicę bajtów a potem zamienia ją za pomocą modułu „pickle” w obiekt (który jest drzewem Huffmana). Również posiada metodę
+„readFrame”, która wczytuje wymiary obrazu. Klasa „FileOutput” ma metody odpowiadające tamtym, tylko zapisujące dane.
+
+Jest jeszcze klasa „Sizes”, która opakowuje rozmiar obrazu, rozmiar drzewa Huffmana oraz rozmiar skompresowanej tabeli bitów (wszystko w bajtach).
+
+Są trzy aplikacje: „main-compress”, „main-decompress” oraz „process”. Ta pierwsza kompresuje plik obrazu i trzeba jej podać poza tym, który tryb danych
+różnicowych ma być użyty. Poza tym jej wyjściem są różne statystyki i wykresy (histogramy). Ta druga dekompresuje skompresowany plik i również pobiera
+tryb. Ona dopisuje do statystyk czas dekompresji. Program „process” kompresuje i dekompresuje wszystkie dane testowe (w folderach „Pictures”
+i „Distributions” używając tych dwóch pierwszych jako podprocesów.
+
+
